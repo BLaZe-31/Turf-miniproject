@@ -52,6 +52,16 @@ create policy "Users can update their own profile"
   on users for update
   using (auth.uid() = id);
 
+create policy "Officials can view user profiles"
+  on users for select
+  using (
+    exists (
+      select 1 from users u
+      where u.id = auth.uid()
+        and u.role in ('admin', 'turf_official')
+    )
+  );
+
 -- RLS policies for turfs (public read)
 create policy "Anyone can view turfs"
   on turfs for select

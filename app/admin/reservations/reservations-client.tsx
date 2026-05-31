@@ -16,13 +16,14 @@ interface Booking {
   duration: number
   status: string
   total_price: number
-  user: Array<{
+  user_id: string
+  user: {
     email: string
+    name: string | null
+  } | null
+  turf: {
     name: string
-  }>
-  turf: Array<{
-    name: string
-  }>
+  } | null
 }
 
 export default function AdminReservationsPage() {
@@ -45,8 +46,9 @@ export default function AdminReservationsPage() {
             duration,
             status,
             total_price,
-            user:users(email, name),
-            turf:turfs(name)
+            user_id,
+            user:users!bookings_user_id_fkey(email, name),
+            turf:turfs!bookings_turf_id_fkey(name)
           `
           )
           .order('date', { ascending: false })
@@ -134,10 +136,18 @@ export default function AdminReservationsPage() {
               <Card key={booking.id} className="p-6">
                 <div className="flex flex-col gap-6 md:flex-row md:justify-between md:items-start">
                   <div className="flex-1">
-                    <h3 className="text-xl font-semibold">{booking.turf[0]?.name}</h3>
-                    <p className="text-muted-foreground mb-4">
-                      Booked by: {booking.user[0]?.name} ({booking.user[0]?.email})
-                    </p>
+                    <h3 className="text-xl font-semibold">{booking.turf?.name ?? 'Unknown turf'}</h3>
+                    <div className="mb-4 rounded-lg border bg-secondary/40 px-4 py-3">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">
+                        Booked by
+                      </p>
+                      <p className="font-medium">
+                        {booking.user?.name?.trim() || 'Unknown user'}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {booking.user?.email ?? booking.user_id}
+                      </p>
+                    </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                       <div>
                         <p className="text-muted-foreground">Date</p>
