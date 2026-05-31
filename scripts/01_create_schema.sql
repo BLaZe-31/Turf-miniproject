@@ -52,6 +52,10 @@ create policy "Users can update their own profile"
   on users for update
   using (auth.uid() = id);
 
+create policy "Users can insert their own profile"
+  on users for insert
+  with check (auth.uid() = id);
+
 create policy "Officials can view user profiles"
   on users for select
   using (
@@ -107,9 +111,26 @@ create policy "Admins can insert bookings"
 -- Create trigger for new users
 create or replace function public.handle_new_user()
 returns trigger as $$
+declare
+  meta_role text := nullif(trim(new.raw_user_meta_data->>'role'), '');
+  safe_role text := 'user';
 begin
-  insert into public.users (id, email, role)
-  values (new.id, new.email, 'user');
+  if meta_role in ('user', 'turf_official') then
+    safe_role := meta_role;
+  end if;
+
+  insert into public.users (id, email, name, role)
+  values (
+    new.id,
+    new.email,
+    nullif(trim(new.raw_user_meta_data->>'name'), ''),
+    safe_role
+  )
+  on conflict (id) do update set
+    email = excluded.email,
+    name = coalesce(excluded.name, public.users.name),
+    role = excluded.role;
+
   return new;
 end;
 $$ language plpgsql security definer set search_path = public;

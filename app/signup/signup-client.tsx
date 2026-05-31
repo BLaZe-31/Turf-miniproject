@@ -44,6 +44,7 @@ export default function SignupPage() {
         options: {
           data: {
             name,
+            role,
           },
         },
       })
@@ -52,26 +53,25 @@ export default function SignupPage() {
         throw new Error(authError.message || 'Authentication failed')
       }
 
-      if (authData.user) {
+      if (!authData.user) {
+        throw new Error('Signup failed. Please try again.')
+      }
+
+      // Profile is created by the DB trigger from auth metadata.
+      // If a session exists (email confirm off), sync name/role as a fallback.
+      if (authData.session) {
         const { error: profileError } = await supabase
           .from('users')
-          .insert([
-            {
-              id: authData.user.id,
-              email,
-              name,
-              role,
-            },
-          ])
+          .update({ name, role, email })
+          .eq('id', authData.user.id)
 
         if (profileError) {
-          console.error('[v0] Profile creation error:', profileError)
-          throw profileError
+          console.error('[v0] Profile sync error:', profileError)
         }
-
-        toast.success('Account created! Check your email for verification.')
-        router.push('/login')
       }
+
+      toast.success('Account created! Check your email for verification.')
+      router.push('/login')
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Signup failed'
       console.error('[v0] Signup error:', message)
