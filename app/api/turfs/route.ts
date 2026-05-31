@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { name, location, pricePerHour, peakPricePerHour, sport, imageUrl } = body
+    const { name, location, pricePerHour, peakPricePerHour, peakHourStart, peakHourEnd, sport, imageUrl } = body
 
     if (!name || !location || !pricePerHour) {
       return NextResponse.json(
@@ -75,6 +75,8 @@ export async function POST(request: NextRequest) {
           location,
           price_per_hour: pricePerHour,
           peak_price_per_hour: peakPricePerHour || 0,
+          peak_hour_start: peakHourStart ?? 17,
+          peak_hour_end: peakHourEnd ?? 20,
           sport: sport || 'football',
           image_url: imageUrl || null,
         },

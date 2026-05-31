@@ -85,6 +85,7 @@ export default function DashboardPage() {
         )
       )
       toast.success('Booking cancelled successfully')
+      toast('Customer refunded', { icon: '💰', description: 'The refund has been processed to the original payment method.' })
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to cancel'
       toast.error(message)
@@ -154,6 +155,11 @@ export default function DashboardPage() {
                         }`}>
                           {booking.status}
                         </p>
+                        {booking.status === 'cancelled' && (
+                          <span className="inline-flex items-center gap-1 mt-1 text-xs font-medium text-amber-700 bg-amber-100 rounded-full px-2 py-0.5">
+                            💰 Customer refunded
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>

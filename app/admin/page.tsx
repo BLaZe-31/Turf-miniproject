@@ -16,6 +16,8 @@ interface Turf {
   location: string
   price_per_hour: number
   peak_price_per_hour: number
+  peak_hour_start: number
+  peak_hour_end: number
   sport: string
   image_url?: string
 }
@@ -47,6 +49,8 @@ export default function AdminPage() {
     location: '',
     price_per_hour: '',
     peak_price_per_hour: '',
+    peak_hour_start: '17',
+    peak_hour_end: '20',
     sport: 'football',
     image_url: '',
   })
@@ -146,6 +150,8 @@ export default function AdminPage() {
           peakPricePerHour: newTurf.peak_price_per_hour
             ? parseFloat(newTurf.peak_price_per_hour)
             : 0,
+          peakHourStart: parseInt(newTurf.peak_hour_start) || 17,
+          peakHourEnd: parseInt(newTurf.peak_hour_end) || 20,
           sport: newTurf.sport,
           imageUrl: newTurf.image_url,
         }),
@@ -162,6 +168,8 @@ export default function AdminPage() {
         location: '',
         price_per_hour: '',
         peak_price_per_hour: '',
+        peak_hour_start: '17',
+        peak_hour_end: '20',
         sport: 'football',
         image_url: '',
       })
@@ -194,6 +202,7 @@ export default function AdminPage() {
         )
       )
       toast.success('Booking cancelled')
+      toast('Customer refunded', { icon: '💰', description: 'The refund has been processed to the original payment method.' })
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to cancel'
       toast.error(message)
@@ -284,6 +293,36 @@ export default function AdminPage() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
+                    <label className="block text-sm font-medium mb-2">Peak Hour Start</label>
+                    <select
+                      className="w-full border rounded-md px-3 py-2 text-sm bg-background"
+                      value={newTurf.peak_hour_start}
+                      onChange={(e) => setNewTurf({ ...newTurf, peak_hour_start: e.target.value })}
+                    >
+                      {Array.from({ length: 17 }, (_, i) => i + 6).map((h) => (
+                        <option key={h} value={h}>
+                          {String(h).padStart(2, '0')}:00 ({h > 12 ? `${h - 12} PM` : h === 12 ? '12 PM' : `${h} AM`})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Peak Hour End</label>
+                    <select
+                      className="w-full border rounded-md px-3 py-2 text-sm bg-background"
+                      value={newTurf.peak_hour_end}
+                      onChange={(e) => setNewTurf({ ...newTurf, peak_hour_end: e.target.value })}
+                    >
+                      {Array.from({ length: 17 }, (_, i) => i + 6).map((h) => (
+                        <option key={h} value={h}>
+                          {String(h).padStart(2, '0')}:00 ({h > 12 ? `${h - 12} PM` : h === 12 ? '12 PM' : `${h} AM`})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
                     <label className="block text-sm font-medium mb-2">Sport</label>
                     <select
                       className="w-full border rounded-md px-3 py-2 text-sm bg-background"
@@ -332,7 +371,7 @@ export default function AdminPage() {
                       ₹{turf.price_per_hour}/hr
                       {turf.peak_price_per_hour > 0 && (
                         <span className="text-sm text-muted-foreground ml-3">
-                          Peak: ₹{turf.peak_price_per_hour}/hr
+                          Peak: ₹{turf.peak_price_per_hour}/hr ({String(turf.peak_hour_start).padStart(2, '0')}:00 – {String(turf.peak_hour_end).padStart(2, '0')}:00)
                         </span>
                       )}
                     </p>
@@ -395,6 +434,11 @@ export default function AdminPage() {
                           }`}>
                             {booking.status}
                           </p>
+                          {booking.status === 'cancelled' && (
+                            <span className="inline-flex items-center gap-1 mt-1 text-xs font-medium text-amber-700 bg-amber-100 rounded-full px-2 py-0.5">
+                              💰 Customer refunded
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>

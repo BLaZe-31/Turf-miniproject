@@ -15,6 +15,8 @@ create table if not exists turfs (
   location text,
   price_per_hour numeric not null,
   peak_price_per_hour numeric default 0,
+  peak_hour_start integer default 17,
+  peak_hour_end integer default 20,
   sport text default 'football',
   image_url text,
   created_at timestamp default now()
