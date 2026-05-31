@@ -13,7 +13,6 @@ export default function SignupPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
-  const [role, setRole] = useState('user')
   const [loading, setLoading] = useState(false)
   const [envError, setEnvError] = useState('')
   const router = useRouter()
@@ -42,10 +41,7 @@ export default function SignupPage() {
         email,
         password,
         options: {
-          data: {
-            name,
-            role,
-          },
+          data: { name },
         },
       })
 
@@ -57,12 +53,11 @@ export default function SignupPage() {
         throw new Error('Signup failed. Please try again.')
       }
 
-      // Profile is created by the DB trigger from auth metadata.
-      // If a session exists (email confirm off), sync name/role as a fallback.
+      // If a session exists (email confirm off), sync name as a fallback.
       if (authData.session) {
         const { error: profileError } = await supabase
           .from('users')
-          .update({ name, role, email })
+          .update({ name, email })
           .eq('id', authData.user.id)
 
         if (profileError) {
@@ -87,7 +82,7 @@ export default function SignupPage() {
         <div className="p-8">
           <h1 className="text-3xl font-bold text-center mb-2">Create Account</h1>
           <p className="text-center text-muted-foreground mb-8">
-            Join us to book or manage turfs as a user or official.
+            Join us to book your favorite turfs.
           </p>
 
           {envError && (
@@ -131,19 +126,6 @@ export default function SignupPage() {
                 required
                 disabled={loading}
               />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">Role</label>
-              <select
-                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                disabled={loading}
-              >
-                <option value="user">Regular User</option>
-                <option value="turf_official">Turf Official</option>
-              </select>
             </div>
 
             <Button
