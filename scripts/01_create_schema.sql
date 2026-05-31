@@ -19,6 +19,8 @@ create table if not exists turfs (
   peak_hour_end integer default 20,
   sport text default 'football',
   image_url text,
+  image_urls text[] default '{}',
+  max_players integer default 10,
   created_at timestamp default now()
 );
 

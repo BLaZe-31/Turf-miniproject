@@ -53,7 +53,9 @@ export default function Home() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="text-center">
-          <h1 className="text-5xl font-bold mb-4">Book Your Favorite Turf</h1>
+          <h1 className="text-5xl font-bold mb-4">
+            <span className="bg-gradient-to-r from-primary via-emerald-400 to-teal-400 bg-clip-text text-transparent">Book Your Favorite Turf</span>
+          </h1>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
             Easy turf booking system. Find, book, and manage your turf reservations all in one place.
           </p>

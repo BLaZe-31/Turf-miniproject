@@ -8,8 +8,18 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Calendar } from '@/components/ui/calendar'
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+  type CarouselApi,
+} from '@/components/ui/carousel'
 import { format, isBefore, startOfDay } from 'date-fns'
 import { toast } from 'sonner'
+import { getPrimaryTurfImage, getTurfImages } from '@/lib/turf-images'
+import { cn } from '@/lib/utils'
 
 interface Turf {
   id: string
@@ -20,7 +30,9 @@ interface Turf {
   peak_hour_start: number
   peak_hour_end: number
   image_url?: string
+  image_urls?: string[]
   sport: string
+  max_players: number
 }
 
 interface TimeSlot {
@@ -32,6 +44,71 @@ const sports = ['all', 'football', 'cricket', 'basketball', 'badminton', 'tennis
 
 const defaultTurfImage = (sport: string) =>
   `https://source.unsplash.com/480x320/?${encodeURIComponent(sport)}+turf`
+
+function TurfImageSlider({ images, name }: { images: string[]; name: string }) {
+  const [api, setApi] = useState<CarouselApi>()
+  const [current, setCurrent] = useState(0)
+
+  useEffect(() => {
+    if (!api) return
+
+    const onSelect = () => setCurrent(api.selectedScrollSnap())
+    onSelect()
+    api.on('select', onSelect)
+    return () => {
+      api.off('select', onSelect)
+    }
+  }, [api])
+
+  if (images.length <= 1) {
+    return (
+      <div className="aspect-[16/10] lg:aspect-auto lg:h-full lg:min-h-[320px]">
+        <img
+          src={images[0]}
+          alt={name}
+          className="h-full w-full object-cover"
+        />
+      </div>
+    )
+  }
+
+  return (
+    <Carousel setApi={setApi} className="w-full" opts={{ loop: true }}>
+      <CarouselContent className="ml-0">
+        {images.map((url, index) => (
+          <CarouselItem key={`${url}-${index}`} className="pl-0">
+            <div className="aspect-[16/10] lg:aspect-auto lg:h-full lg:min-h-[320px]">
+              <img
+                src={url}
+                alt={`${name} — photo ${index + 1}`}
+                className="h-full w-full object-cover"
+              />
+            </div>
+          </CarouselItem>
+        ))}
+      </CarouselContent>
+      <CarouselPrevious className="left-3 top-1/2 -translate-y-1/2 size-9 border-0 bg-black/50 text-white hover:bg-black/70 hover:text-white disabled:opacity-30" />
+      <CarouselNext className="right-3 top-1/2 -translate-y-1/2 size-9 border-0 bg-black/50 text-white hover:bg-black/70 hover:text-white disabled:opacity-30" />
+      <div className="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 gap-1.5">
+        {images.map((_, index) => (
+          <button
+            key={index}
+            type="button"
+            aria-label={`Go to photo ${index + 1}`}
+            onClick={() => api?.scrollTo(index)}
+            className={cn(
+              'h-2 rounded-full transition-all',
+              current === index ? 'w-6 bg-white' : 'w-2 bg-white/50 hover:bg-white/80'
+            )}
+          />
+        ))}
+      </div>
+      <span className="absolute top-3 right-3 z-10 rounded-full bg-black/50 px-2.5 py-0.5 text-xs font-medium text-white">
+        {current + 1} / {images.length}
+      </span>
+    </Carousel>
+  )
+}
 
 export default function BookingsPage() {
   const [turfs, setTurfs] = useState<Turf[]>([])
@@ -121,6 +198,17 @@ export default function BookingsPage() {
 
     checkAvailability()
   }, [selectedTurf, selectedDate, supabase])
+
+  const handleSelectTurf = (turf: Turf) => {
+    setSelectedTurf(turf)
+    setSelectedTime(null)
+  }
+
+  const selectedTurfImages = useMemo(() => {
+    if (!selectedTurf) return []
+    const images = getTurfImages(selectedTurf)
+    return images.length > 0 ? images : [defaultTurfImage(selectedTurf.sport)]
+  }, [selectedTurf])
 
   const filteredTurfs = useMemo(() => {
     return turfs.filter((turf) => {
@@ -311,7 +399,7 @@ export default function BookingsPage() {
               {/* Payment Preview */}
               <div>
                 <h2 className="text-sm font-semibold mb-2">Payment Preview</h2>
-                <div className="rounded-xl border border-border bg-white p-3 text-sm space-y-1.5">
+                <div className="rounded-xl border border-border bg-secondary p-3 text-sm space-y-1.5">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Turf</span>
                     <span className="font-medium truncate ml-2">{selectedTurf?.name || 'None'}</span>
@@ -348,10 +436,57 @@ export default function BookingsPage() {
           </div>
         </section>
 
-        {/* ===== TURF CARDS SECTION — bottom 70% ===== */}
+        {/* ===== TURF SELECTION ===== */}
         <section className="flex-1">
+          {selectedTurf && (
+            <Card className="mb-6 overflow-hidden border-primary/40 shadow-md">
+              <div className="grid grid-cols-1 lg:grid-cols-5">
+                <div className="lg:col-span-3 relative bg-secondary">
+                  <TurfImageSlider
+                    key={selectedTurf.id}
+                    images={selectedTurfImages}
+                    name={selectedTurf.name}
+                  />
+                </div>
+
+                <div className="lg:col-span-2 p-6 lg:p-8 flex flex-col justify-center">
+                  <span className="inline-flex w-fit items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-medium capitalize text-primary mb-3">
+                    {selectedTurf.sport}
+                  </span>
+                  <h2 className="text-2xl lg:text-3xl font-bold mb-2">{selectedTurf.name}</h2>
+                  <p className="text-muted-foreground mb-4">{selectedTurf.location}</p>
+
+                  <div className="grid grid-cols-2 gap-4 mb-6 text-sm">
+                    <div className="rounded-lg border bg-secondary/50 p-3">
+                      <p className="text-muted-foreground text-xs mb-1">Base rate</p>
+                      <p className="text-lg font-semibold">₹{selectedTurf.price_per_hour}/hr</p>
+                    </div>
+                    <div className="rounded-lg border bg-secondary/50 p-3">
+                      <p className="text-muted-foreground text-xs mb-1">Max players</p>
+                      <p className="text-lg font-semibold">{selectedTurf.max_players ?? 10}</p>
+                    </div>
+                    {selectedTurf.peak_price_per_hour > 0 && (
+                      <div className="col-span-2 rounded-lg border bg-secondary/50 p-3">
+                        <p className="text-muted-foreground text-xs mb-1">Peak pricing</p>
+                        <p className="font-semibold">
+                          ₹{selectedTurf.peak_price_per_hour}/hr ·{' '}
+                          {String(selectedTurf.peak_hour_start ?? 17).padStart(2, '0')}:00 –{' '}
+                          {String(selectedTurf.peak_hour_end ?? 20).padStart(2, '0')}:00
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <p className="text-sm text-muted-foreground">
+                    Select a date and time above, then confirm your booking.
+                  </p>
+                </div>
+              </div>
+            </Card>
+          )}
+
           <h2 className="text-lg font-semibold mb-4">
-            Available Turfs
+            Choose a Turf
             {filteredTurfs.length > 0 && (
               <span className="text-sm font-normal text-muted-foreground ml-2">
                 ({filteredTurfs.length} found)
@@ -364,43 +499,31 @@ export default function BookingsPage() {
               <p className="text-muted-foreground">No turfs match your filters.</p>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
               {filteredTurfs.map((turf) => (
                 <Card
                   key={turf.id}
-                  className={`overflow-hidden p-0 border transition-all cursor-pointer hover:shadow-lg ${
+                  className={`overflow-hidden p-0 border transition-all cursor-pointer hover:shadow-md ${
                     selectedTurf?.id === turf.id
-                      ? 'border-primary ring-2 ring-primary/30 bg-primary/5'
-                      : 'hover:border-primary/50'
+                      ? 'border-primary ring-2 ring-primary/30 scale-[1.02]'
+                      : 'hover:border-primary/50 opacity-90 hover:opacity-100'
                   }`}
-                  onClick={() => setSelectedTurf(turf)}
+                  onClick={() => handleSelectTurf(turf)}
                 >
-                  <div className="relative h-40 w-full">
+                  <div className="relative h-28 w-full">
                     <img
-                      src={turf.image_url || defaultTurfImage(turf.sport)}
+                      src={getPrimaryTurfImage(turf, defaultTurfImage)}
                       alt={turf.name}
                       className="h-full w-full object-cover"
                     />
                     {selectedTurf?.id === turf.id && (
-                      <div className="absolute top-2 right-2 bg-primary text-primary-foreground text-xs font-semibold px-2 py-0.5 rounded-full">
-                        Selected
-                      </div>
+                      <div className="absolute inset-0 bg-primary/10" />
                     )}
                   </div>
-                  <div className="p-4">
-                    <h3 className="font-semibold text-lg">{turf.name}</h3>
-                    <p className="text-sm text-muted-foreground">{turf.location}</p>
-                    <p className="text-sm text-muted-foreground capitalize">
-                      Sport: {turf.sport}
-                    </p>
-                    <p className="mt-2 font-medium">
-                      ₹{turf.price_per_hour}/hr
-                      {turf.peak_price_per_hour > 0 && (
-                        <span className="text-xs text-muted-foreground ml-2">
-                          peak ₹{turf.peak_price_per_hour}/hr ({String(turf.peak_hour_start ?? 17).padStart(2, '0')}:00–{String(turf.peak_hour_end ?? 20).padStart(2, '0')}:00)
-                        </span>
-                      )}
-                    </p>
+                  <div className="p-3">
+                    <h3 className="font-semibold text-sm truncate">{turf.name}</h3>
+                    <p className="text-xs text-muted-foreground truncate">{turf.location}</p>
+                    <p className="mt-1 text-sm font-medium">₹{turf.price_per_hour}/hr</p>
                   </div>
                 </Card>
               ))}
